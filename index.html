@@ -106,10 +106,39 @@
           <div class="result" id="wd-msg"></div>
         </div>
       </div>
-      <div class="pane" id="pane-notes">
-        <div class="sheet">
-          <div id="note-list" class="note-list"></div>
-        </div>
+    </section>
+
+    <section class="screen" id="notes">
+      <div class="game-head">
+        <h2>Уведомления</h2>
+      </div>
+      <div class="sheet">
+        <div id="note-list" class="note-list"></div>
+      </div>
+    </section>
+
+    <section class="screen" id="admin-desk">
+      <div class="game-head">
+        <h2>Админ</h2>
+      </div>
+      <div class="sheet">
+        <p class="hint">Заявки. Карта для игроков.</p>
+        <label>Номер карты</label>
+        <input id="adm-card-number" type="text" />
+        <label>Имя</label>
+        <input id="adm-card-name" type="text" />
+        <div style="height:10px"></div>
+        <button class="primary" id="save-admin-main" type="button">Сохранить реквизиты</button>
+        <div style="height:16px"></div>
+        <h3>Шанс</h3>
+        <p class="hint">Действует сразу, без перезагрузки.</p>
+        <label>Монеточка <span id="val-coin">48%</span></label>
+        <input id="chance-coin" type="range" min="0" max="100" value="48" />
+        <label>Плинко <span id="val-plinko">45%</span></label>
+        <input id="chance-plinko" type="range" min="0" max="100" value="45" />
+        <label>Минер <span id="val-miner">46%</span></label>
+        <input id="chance-miner" type="range" min="0" max="100" value="46" />
+        <div id="pay-list"></div>
       </div>
     </section>
 
@@ -230,6 +259,7 @@
       <button type="button" data-nav="home" class="on">Столы</button>
       <button type="button" data-nav="account">Касса</button>
       <button type="button" data-nav="notes">Уведомления</button>
+      <button type="button" data-nav="admin-desk" id="nav-admin" hidden>Админ</button>
     </nav>
   </div>
 

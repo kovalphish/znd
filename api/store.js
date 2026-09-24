@@ -31,3 +31,8 @@ async function loadPays() { return getJson("znd:pays", []); }
 async function savePays(list) { return setJson("znd:pays", list); }
 
 module.exports = { loadUsers, saveUsers, loadPays, savePays };
+
+async function loadCfg() { return getJson("znd:cfg", { pay: { cardNumber: "", cardName: "" } }); }
+async function saveCfg(v) { return setJson("znd:cfg", v); }
+module.exports.loadCfg = loadCfg;
+module.exports.saveCfg = saveCfg;

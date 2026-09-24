@@ -22,18 +22,9 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", () => {
       if (!currentUser()) { openScreen("auth"); return; }
       const id = btn.dataset.nav;
-      if (id === "notes") {
-        fillPayCard();
-        renderNotes();
-        openScreen("account");
-        document.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === "notes"));
-        document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("on", p.id === "pane-notes"));
-        return;
-      }
-      if (id === "account") {
-        fillPayCard();
-        renderNotes();
-      }
+      if (id === "notes") renderNotes();
+      if (id === "account") fillPayCard();
+      if (id === "admin-desk") loadAdminDesk();
       openScreen(id);
     });
   });

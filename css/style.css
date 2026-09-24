@@ -364,3 +364,6 @@ footer { display: none; }
   cursor: pointer;
 }
 .sum-btn:active { background: #b6ff3b; color: #111; }
+
+.nav.has-admin { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.note-list { max-height: 70vh; }
