@@ -1,0 +1,7 @@
+{
+  "games": {
+    "coin": { "enabled": true, "winChance": 48 },
+    "plinko": { "enabled": true, "winChance": 45 },
+    "miner": { "enabled": true, "winChance": 46 }
+  }
+}

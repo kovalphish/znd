@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ZND</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700&family=Roboto:wght@900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="index.html" id="brand-home">
+        <div class="mark">Z</div>
+        <div>
+          <h1>ZND</h1>
+          <span>MINI CASINO</span>
+        </div>
+      </a>
+      <div id="guest-actions">
+        <button class="ghost" data-open="auth" type="button">Вход</button>
+      </div>
+      <div class="balance-box" id="user-actions" hidden>
+        <div>
+          <small>Баланс</small>
+          <div><strong data-balance>0.00</strong></div>
+        </div>
+        <button class="ghost" id="open-account" type="button">
+          <span id="user-name">Аккаунт</span>
+          <span class="badge" id="note-badge" hidden>0</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="screen" id="auth">
+      <div class="hero">
+        <h2>Вход</h2>
+        <p>Почта и пароль.</p>
+      </div>
+      <div class="sheet">
+        <div class="auth-switch">
+          <button type="button" class="on" data-auth="login">Вход</button>
+          <button type="button" data-auth="reg">Регистрация</button>
+        </div>
+        <form class="auth-pane on" id="login-user-form">
+          <label>Почта</label>
+          <input id="login-email" type="email" required />
+          <label>Пароль</label>
+          <input id="login-pass" type="password" required />
+          <div style="height:12px"></div>
+          <button class="primary" type="submit">Войти</button>
+          <div class="result lose" id="login-user-error"></div>
+        </form>
+        <form class="auth-pane" id="reg-user-form">
+          <label>Имя</label>
+          <input id="reg-name" type="text" required />
+          <label>Почта</label>
+          <input id="reg-email" type="email" required />
+          <label>Пароль</label>
+          <input id="reg-pass" type="password" required />
+          <div style="height:12px"></div>
+          <button class="primary" type="submit">Создать</button>
+          <div class="result lose" id="reg-user-error"></div>
+        </form>
+      </div>
+    </section>
+
+    <section class="screen" id="account">
+      <div class="game-head">
+        <h2>Касса</h2>
+        <button class="ghost" id="logout-btn" type="button">Выйти</button>
+      </div>
+      <div class="tabs two">
+        <button type="button" class="on" data-tab="dep">Пополнить</button>
+        <button type="button" data-tab="wd">Вывод</button>
+      </div>
+      <div class="pane on" id="pane-dep">
+        <div class="sheet">
+          <div class="pay-card">
+            <div class="hint">Карта</div>
+            <strong id="pay-card-number">—</strong>
+            <div class="hint">Получатель</div>
+            <strong id="pay-card-name">—</strong>
+          </div>
+          <label>Сумма</label>
+          <input id="dep-base" type="number" min="50" step="1" value="200" inputmode="decimal" />
+          <div style="height:12px"></div>
+          <button class="primary" id="dep-open" type="button">Пополнить</button>
+          <div class="result" id="dep-msg"></div>
+        </div>
+      </div>
+      <div class="pane" id="pane-wd">
+        <div class="sheet">
+          <form id="wd-form">
+            <label>Сумма</label>
+            <input id="wd-amount" type="number" min="500" step="1" value="500" inputmode="decimal" />
+            <label>Телефон</label>
+            <input id="wd-phone" type="tel" placeholder="+7" required />
+            <label>Банк</label>
+            <input id="wd-bank" type="text" required />
+            <div style="height:12px"></div>
+            <button class="secondary" type="submit">Запросить вывод</button>
+          </form>
+          <div class="result" id="wd-msg"></div>
+        </div>
+      </div>
+      <div class="pane" id="pane-notes">
+        <div class="sheet">
+          <div id="note-list" class="note-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="home">
+      <div class="hero">
+        <h2>Игры</h2>
+        <p>Монеточка, плинко и минер.</p>
+      </div>
+      <div class="grid">
+        <article class="card card-coin">
+          <div class="glow"></div>
+          <div class="tag">x2</div>
+          <h3>Монеточка</h3>
+          <p>Орёл или решка. x2</p>
+          <button class="go" data-open="coin" type="button">Играть</button>
+        </article>
+        <article class="card card-plinko">
+          <div class="glow"></div>
+          <div class="tag">MULTI</div>
+          <h3>Плинко</h3>
+          <p>Шарики и множители</p>
+          <button class="go" data-open="plinko" type="button">Играть</button>
+        </article>
+        <article class="card card-miner">
+          <div class="glow"></div>
+          <div class="tag">RISK</div>
+          <h3>Минер</h3>
+          <p>Поле и множитель</p>
+          <button class="go" data-open="miner" type="button">Играть</button>
+        </article>
+      </div>
+    </section>
+
+    <section class="screen" id="coin">
+      <div class="game-head">
+        <h2>Монеточка</h2>
+        <button class="ghost" data-back type="button">Назад</button>
+      </div>
+      <div class="panel">
+        <div class="stage stage-coin">
+          <div class="coin-wrap">
+            <div class="coin" id="coin-mesh">
+              <div class="coin__front-backface"></div>
+              <div class="coin__front"><img src="assets/eagle.svg" alt=""></div>
+              <div class="coin__back"><img src="assets/ruble.svg" alt=""></div>
+              <div class="coin__back-backface"></div>
+            </div>
+          </div>
+        </div>
+        <div class="controls">
+          <label>Ставка</label>
+          <input id="coin-stake" type="number" min="1" step="1" value="10" />
+          <label>Сторона</label>
+          <div class="side-pick">
+            <button type="button" class="side-btn on" data-side="heads">Орёл</button>
+            <button type="button" class="side-btn" data-side="tails">Решка</button>
+          </div>
+          <input id="coin-side" type="hidden" value="heads" />
+          <button class="primary" id="coin-play" type="button">Бросить</button>
+          <div class="result" id="coin-result">Выберите сторону и ставку.</div>
+          <div class="log" id="coin-log"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="plinko">
+      <div class="game-head">
+        <h2>Плинко</h2>
+        <button class="ghost" data-back type="button">Назад</button>
+      </div>
+      <div class="panel">
+        <div class="stage stage-plinko">
+          <canvas id="plinko-canvas"></canvas>
+        </div>
+        <div class="controls">
+          <label>Ставка за шарик</label>
+          <input id="plinko-stake" type="number" min="1" step="1" value="10" />
+          <label>Число шариков</label>
+          <input id="plinko-balls" type="number" min="1" max="10" value="3" />
+          <button class="primary" id="plinko-play" type="button">Запустить</button>
+          <div class="result" id="plinko-result">Шарик ищет слот.</div>
+          <div class="log" id="plinko-log"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="miner">
+      <div class="game-head">
+        <h2>Минер</h2>
+        <button class="ghost" data-back type="button">Назад</button>
+      </div>
+      <div class="panel">
+        <div class="stage">
+          <div class="mines" id="mines-board"></div>
+        </div>
+        <div class="controls">
+          <label>Ставка</label>
+          <input id="miner-stake" type="number" min="1" step="1" value="10" />
+          <label>Риск / число мин</label>
+          <input id="miner-count" type="number" min="1" max="10" value="3" />
+          <button class="primary" id="miner-start" type="button">Новый раунд</button>
+          <button class="secondary" id="miner-cash" type="button" disabled>Забрать</button>
+          <div class="result" id="miner-result">Начните раунд и открывайте поле.</div>
+          <div class="log" id="miner-log"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="modal" id="dep-modal" hidden>
+      <div class="modal-card">
+        <h3>Сумма</h3>
+        <p class="hint">Минимум 50. Выберите точную сумму.</p>
+        <div class="sum-grid" id="dep-sums"></div>
+        <button class="secondary" id="dep-close" type="button">Закрыть</button>
+      </div>
+    </div>
+    <nav class="nav" id="tabbar">
+      <button type="button" data-nav="home" class="on">Столы</button>
+      <button type="button" data-nav="account">Касса</button>
+      <button type="button" data-nav="notes">Уведомления</button>
+    </nav>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/games/coin.js"></script>
+  <script src="js/games/plinko.js"></script>
+  <script src="js/games/miner.js"></script>
+</body>
+</html>
