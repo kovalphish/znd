@@ -1,14 +1,23 @@
 const { loadUsers, saveUsers, loadPays, savePays } = require("./store");
 
 const BOT = process.env.TELEGRAM_BOT_TOKEN;
+const CHAT = process.env.TELEGRAM_CHAT_ID;
 
 async function tg(method, payload) {
+  if (!BOT) return { ok: false, description: "Нет TELEGRAM_BOT_TOKEN" };
   const res = await fetch("https://api.telegram.org/bot" + BOT + "/" + method, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
-  return res.json();
+  const data = await res.json().catch(() => ({ ok: false, description: "Telegram вернул не JSON" }));
+  return data;
+}
+
+async function tell(text, chatId) {
+  const to = chatId || CHAT;
+  if (!to) return;
+  await tg("sendMessage", { chat_id: to, text: String(text).slice(0, 3500) });
 }
 
 function parseBody(req) {
@@ -20,15 +29,16 @@ function parseBody(req) {
 }
 
 async function apply(payId, ok) {
+  if (!payId) throw new Error("В кнопке нет id заявки");
   const pays = await loadPays();
   const p = pays.find((x) => x.id === payId);
-  if (!p) return "Заявка не найдена";
-  if (p.status !== "pending") return "Уже обработана";
+  if (!p) throw new Error("Заявка не найдена в базе: " + payId);
+  if (p.status !== "pending") throw new Error("Заявка уже обработана: " + p.status);
   p.status = ok ? "ok" : "no";
   await savePays(pays);
   const users = await loadUsers();
   const u = users.find((x) => x.id === p.userId) || users.find((x) => x.email === p.email);
-  if (!u) return "Игрок не найден";
+  if (!u) throw new Error("Игрок не найден: " + (p.email || p.userId));
   u.notes = u.notes || [];
   if (p.type === "deposit") {
     if (ok) {
@@ -56,35 +66,49 @@ module.exports = async (req, res) => {
     res.status(200).send("telegram webhook live");
     return;
   }
-  const body = parseBody(req);
-  const cb = body.callback_query;
-  if (cb && cb.data && BOT) {
-    const raw = String(cb.data);
-    const ok = raw.startsWith("ok");
-    const id = raw.split(":")[1] || raw.slice(3);
-    let text = "Ошибка";
-    try {
-      text = await apply(id, ok);
-    } catch (e) {
-      text = String(e.message || e);
+  try {
+    const body = parseBody(req);
+    const cb = body.callback_query;
+    if (!cb) {
+      res.status(200).json({ ok: true });
+      return;
     }
-    await tg("answerCallbackQuery", {
+    const chatId = cb.message && cb.message.chat ? cb.message.chat.id : CHAT;
+    if (!BOT) {
+      await tell("Ошибка: на Vercel нет TELEGRAM_BOT_TOKEN", chatId);
+      res.status(200).json({ ok: true });
+      return;
+    }
+    const raw = String(cb.data || "");
+    const okAct = raw.startsWith("ok");
+    const id = raw.split(":")[1] || "";
+    let text;
+    try {
+      text = await apply(id, okAct);
+    } catch (e) {
+      text = "Ошибка: " + (e.message || e);
+      await tell(text, chatId);
+    }
+    const ans = await tg("answerCallbackQuery", {
       callback_query_id: cb.id,
       text,
       show_alert: true
     });
+    if (!ans.ok) {
+      await tell("Не удалось ответить на кнопку: " + (ans.description || JSON.stringify(ans)), chatId);
+    }
     if (cb.message) {
-      await tg("editMessageReplyMarkup", {
-        chat_id: cb.message.chat.id,
-        message_id: cb.message.message_id,
-        reply_markup: { inline_keyboard: [] }
-      });
-      await tg("editMessageText", {
+      const edited = await tg("editMessageText", {
         chat_id: cb.message.chat.id,
         message_id: cb.message.message_id,
         text: (cb.message.text || "Заявка") + "\n\n" + text
       });
+      if (!edited.ok) {
+        await tell("Кнопка нажата, но сообщение не обновилось: " + (edited.description || ""), chatId);
+      }
     }
+  } catch (e) {
+    try { await tell("Сбой webhook: " + (e.message || e)); } catch (_) {}
   }
   res.status(200).json({ ok: true });
 };
