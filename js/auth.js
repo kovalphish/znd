@@ -40,24 +40,32 @@ function renderNotes() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  seedAdmin();
   const loginForm = document.getElementById("login-user-form");
   const regForm = document.getElementById("reg-user-form");
 
   loginForm?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const email = document.getElementById("login-email").value.trim().toLowerCase();
+    const emailRaw = document.getElementById("login-email").value.trim();
+    const email = emailRaw.toLowerCase();
     const pass = document.getElementById("login-pass").value;
     const err = document.getElementById("login-user-error");
+    seedAdmin();
+    const local = loadUsers().find((x) => x.email === email && x.pass === pass);
+    const isAdmin = (email === ADMIN_EMAIL || email === "admin") && pass === ADMIN_PASS;
+    if (isAdmin) {
+      const adm = seedAdmin();
+      upsertUser(adm);
+      setSession(adm.id);
+      refreshHeader();
+      openScreen("home");
+      return;
+    }
     apiAuth("login", { email, pass }).then((u) => {
-      if (!u) {
-        const local = loadUsers().find((x) => x.email === email && x.pass === pass);
-        if (!local) { err.textContent = "Неверная почта или пароль."; return; }
-        upsertUser(local);
-        setSession(local.id);
-      } else {
-        upsertUser(u);
-        setSession(u.id);
-      }
+      if (!u && !local) { err.textContent = "Неверная почта или пароль."; return; }
+      const user = u || local;
+      upsertUser(user);
+      setSession(user.id);
       refreshHeader();
       openScreen("home");
     });
@@ -150,7 +158,10 @@ document.addEventListener("DOMContentLoaded", () => {
     renderNotes();
     toast("Заявка " + amount.toFixed(2), "wait");
     notifyTelegram("Пополнение\n" + u.name + "\n" + u.email + "\nсумма " + amount.toFixed(2));
-    postRequest({ type: "deposit", amount, name: u.name, email: u.email });
+    showDepWait(amount.toFixed(2), "Ожидание");
+    postRequest({ type: "deposit", amount, name: u.name, email: u.email }).then((data) => {
+      if (data && data.pay && data.pay.id) watchPay(data.pay.id, amount);
+    });
   }
 
   document.getElementById("dep-open")?.addEventListener("click", () => {
@@ -171,16 +182,18 @@ document.addEventListener("DOMContentLoaded", () => {
     grid.innerHTML = uniqueSums(base).map((v) =>
       '<button type="button" class="sum-btn" data-sum="' + v + '">' + v.toFixed(2) + "</button>"
     ).join("");
+    document.getElementById("dep-step-sum").hidden = false;
+    document.getElementById("dep-step-wait").hidden = true;
     modal.hidden = false;
   });
   document.getElementById("dep-close")?.addEventListener("click", () => {
     document.getElementById("dep-modal").hidden = true;
+    if (typeof payWatch !== "undefined") clearInterval(payWatch);
   });
   document.getElementById("dep-sums")?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-sum]");
     if (!btn) return;
     sendDeposit(Number(btn.dataset.sum));
-    document.getElementById("dep-modal").hidden = true;
   });
 
   document.getElementById("wd-form")?.addEventListener("submit", (e) => {
@@ -248,12 +261,55 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 function postRequest(payload) {
-  if (location.protocol === "file:") return;
-  fetch("/api/request", {
+  if (location.protocol === "file:") return Promise.resolve(null);
+  return fetch("/api/request", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
-  }).catch(() => {});
+  }).then((r) => r.ok ? r.json() : null).catch(() => null);
+}
+
+function showDepWait(sum, title) {
+  const modal = document.getElementById("dep-modal");
+  if (!modal) return;
+  modal.hidden = false;
+  document.getElementById("dep-step-sum").hidden = true;
+  document.getElementById("dep-step-wait").hidden = false;
+  document.getElementById("dep-spinner").hidden = false;
+  document.getElementById("dep-check").hidden = true;
+  document.getElementById("dep-wait-title").textContent = title || "Ожидание";
+  document.getElementById("dep-wait-text").textContent = "Сумма " + sum;
+}
+
+function showDepDone(sum) {
+  const spin = document.getElementById("dep-spinner");
+  const check = document.getElementById("dep-check");
+  if (spin) spin.hidden = true;
+  if (check) check.hidden = false;
+  document.getElementById("dep-wait-title").textContent = "Пополнено";
+  document.getElementById("dep-wait-text").textContent = sum;
+}
+
+let payWatch = 0;
+function watchPay(id, amount) {
+  clearInterval(payWatch);
+  payWatch = setInterval(() => {
+    fetch("/api/pay?id=" + encodeURIComponent(id))
+      .then((r) => r.ok ? r.json() : null)
+      .then((p) => {
+        if (!p) return;
+        if (p.status === "ok") {
+          clearInterval(payWatch);
+          showDepDone(Number(p.amount).toFixed(2));
+          syncUser();
+        } else if (p.status === "no") {
+          clearInterval(payWatch);
+          document.getElementById("dep-spinner").hidden = true;
+          document.getElementById("dep-wait-title").textContent = "Отменено";
+          document.getElementById("dep-wait-text").textContent = Number(p.amount).toFixed(2);
+        }
+      }).catch(() => {});
+  }, 1500);
 }
 
 
@@ -277,7 +333,16 @@ function syncUser() {
       if (!s) return;
       const cur = currentUser();
       if (!cur) return;
-      cur.balance = s.balance;
+      const localSeq = Number(cur.balSeq) || 0;
+      const remoteSeq = Number(s.balSeq) || 0;
+      const recent = Date.now() - (Number(cur.balWrite) || 0) < 5000;
+      if (Number(s.balance) > Number(cur.balance)) {
+        cur.balance = s.balance;
+        cur.balSeq = Math.max(localSeq, remoteSeq);
+      } else if (!recent && remoteSeq >= localSeq) {
+        cur.balance = s.balance;
+        cur.balSeq = remoteSeq;
+      }
       cur.notes = s.notes || [];
       cur.admin = s.admin;
       upsertUser(cur);
@@ -300,8 +365,13 @@ function fillPayCard() {
 }
 
 function loadAdminDesk() {
+  paintChances(loadConfig());
   const box = document.getElementById("pay-list");
-  if (!box || !live()) return;
+  if (!box) return;
+  if (!live()) {
+    box.innerHTML = '<div class="hint">Заявки появятся после деплоя</div>';
+    return;
+  }
   fetch("/api/pays").then((r) => r.ok ? r.json() : []).then((list) => {
     if (!list.length) { box.innerHTML = '<div class="hint">Заявок нет</div>'; return; }
     box.innerHTML = list.map((p) =>
@@ -329,44 +399,54 @@ document.getElementById("save-admin-main")?.addEventListener("click", () => {
   toast("Сохранено", "ok");
 });
 
+document.getElementById("give-1000")?.addEventListener("click", () => {
+  setBalance(1000);
+  toast("Баланс 1000", "ok");
+});
+
 setInterval(syncUser, 3000);
 
 
 
 function pullRemoteConfig() {
   if (!live()) return;
+  if (document.getElementById("admin-desk")?.classList.contains("active")) return;
   fetch("/api/config").then((r) => r.ok ? r.json() : null).then((remote) => {
     if (!remote) return;
     const cfg = loadConfig();
     if (remote.pay) cfg.pay = Object.assign({}, cfg.pay, remote.pay);
     if (remote.games) {
-      ["coin", "plinko", "miner"].forEach((g) => {
-        cfg.games[g] = Object.assign({}, cfg.games[g], remote.games[g] || {});
+      ["coin", "plinko", "miner", "dice", "crash", "wheel", "limbo", "c50", "c150", "c250"].forEach((g) => {
+        cfg.games[g] = Object.assign({}, cfg.games[g] || {}, remote.games[g] || {});
       });
     }
     saveConfig(cfg);
-    paintChances(cfg);
   }).catch(() => {});
 }
 
 function paintChances(cfg) {
-  ["coin", "plinko", "miner"].forEach((g) => {
+  ["coin", "plinko", "miner", "dice", "crash", "wheel", "limbo", "c50", "c150", "c250"].forEach((g) => {
     const range = document.getElementById("chance-" + g);
     const val = document.getElementById("val-" + g);
     if (!range || !cfg.games[g]) return;
-    if (document.activeElement !== range) range.value = cfg.games[g].winChance;
-    if (val) val.textContent = cfg.games[g].winChance + "%";
+    range.value = Math.max(0, Math.min(100, Number(cfg.games[g].winChance) || 0));
+    if (val) val.textContent = range.value + "%";
   });
 }
 
 function pushChances() {
   const cfg = loadConfig();
-  ["coin", "plinko", "miner"].forEach((g) => {
+  ["coin", "plinko", "miner", "dice", "crash", "wheel", "limbo", "c50", "c150", "c250"].forEach((g) => {
     const range = document.getElementById("chance-" + g);
     if (!range) return;
-    cfg.games[g].winChance = Number(range.value);
+    if (!cfg.games[g]) cfg.games[g] = { enabled: true, winChance: 0 };
+    let n = Number(range.value);
+    if (!Number.isFinite(n)) n = 0;
+    n = Math.max(0, Math.min(100, Math.round(n)));
+    range.value = String(n);
+    cfg.games[g].winChance = n;
     const val = document.getElementById("val-" + g);
-    if (val) val.textContent = range.value + "%";
+    if (val) val.textContent = n + "%";
   });
   saveConfig(cfg);
   if (live()) {
@@ -376,9 +456,16 @@ function pushChances() {
       body: JSON.stringify({ games: cfg.games })
     }).catch(() => {});
   }
+  toast("Шансы сохранены", "ok");
 }
 
-document.querySelectorAll("#chance-coin,#chance-plinko,#chance-miner").forEach((el) => {
-  el.addEventListener("input", pushChances);
+document.querySelectorAll("#chance-coin,#chance-plinko,#chance-miner,#chance-dice,#chance-crash,#chance-wheel,#chance-limbo,#chance-c50,#chance-c150,#chance-c250").forEach((el) => {
+  el.addEventListener("input", () => {
+    const g = el.id.replace("chance-", "");
+    const val = document.getElementById("val-" + g);
+    const n = Math.max(0, Math.min(100, Number(el.value) || 0));
+    if (val) val.textContent = n + "%";
+  });
 });
-setInterval(pullRemoteConfig, 2000);
+document.getElementById("save-chances")?.addEventListener("click", pushChances);
+setInterval(pullRemoteConfig, 4000);

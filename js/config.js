@@ -1,8 +1,15 @@
 const DEFAULT_CONFIG = {
   games: {
-    coin: { enabled: true, winChance: 48 },
-    plinko: { enabled: true, winChance: 45 },
-    miner: { enabled: true, winChance: 46 }
+    coin: { enabled: true, winChance: 18 },
+    plinko: { enabled: true, winChance: 12 },
+    miner: { enabled: true, winChance: 22 },
+    dice: { enabled: true, winChance: 8 },
+    crash: { enabled: true, winChance: 10 },
+    wheel: { enabled: true, winChance: 8 },
+    limbo: { enabled: true, winChance: 8 },
+    c50: { enabled: true, winChance: 8 },
+    c150: { enabled: true, winChance: 7 },
+    c250: { enabled: true, winChance: 6 }
   },
   pay: {
     cardNumber: "0000 0000 0000 0000",
@@ -17,6 +24,7 @@ const SESSION_KEY = "znd-session";
 const PAY_KEY = "znd-pays";
 const ADMIN_SESSION = "znd-admin";
 const START_BALANCE = 0;
+const ADMIN_EMAIL = "admin@znd.local";
 const ADMIN_PASS = "znd-admin-2026";
 
 function loadConfig() {
@@ -46,6 +54,29 @@ function loadUsers() {
 }
 function saveUsers(list) {
   localStorage.setItem(USERS_KEY, JSON.stringify(list));
+}
+
+function seedAdmin() {
+  const list = loadUsers();
+  let u = list.find((x) => x.email === ADMIN_EMAIL);
+  if (!u) {
+    u = {
+      id: "admin",
+      name: "Admin",
+      email: ADMIN_EMAIL,
+      pass: ADMIN_PASS,
+      balance: 1000,
+      notes: [],
+      admin: true
+    };
+    list.push(u);
+    saveUsers(list);
+  } else {
+    u.pass = ADMIN_PASS;
+    u.admin = true;
+    saveUsers(list);
+  }
+  return u;
 }
 
 function currentUser() {
@@ -79,12 +110,28 @@ function setBalance(v) {
   const n = Math.max(0, Math.round(v * 100) / 100);
   if (u) {
     u.balance = n;
+    u.balSeq = (Number(u.balSeq) || 0) + 1;
+    u.balWrite = Date.now();
     upsertUser(u);
+    pushBalance(u);
   }
   document.querySelectorAll("[data-balance]").forEach((el) => {
     el.textContent = n.toFixed(2);
   });
   return n;
+}
+
+let balTimer = 0;
+function pushBalance(u) {
+  if (!u || location.protocol === "file:") return;
+  clearTimeout(balTimer);
+  balTimer = setTimeout(() => {
+    fetch("/api/balance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: u.email, balance: u.balance, seq: u.balSeq || 0 })
+    }).catch(() => {});
+  }, 250);
 }
 
 function addBalance(delta) {

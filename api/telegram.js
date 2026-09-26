@@ -42,7 +42,8 @@ async function apply(payId, ok) {
   u.notes = u.notes || [];
   if (p.type === "deposit") {
     if (ok) {
-      u.balance = Math.round((Number(u.balance || 0) + Number(p.amount)) * 100) / 100;
+      u.balance = Math.round((Number(u.balance || 0) + Number(p.amount)) * 100) / 100; u.balSeq = (Number(u.balSeq) || 0) + 1;
+      u.balSeq = (Number(u.balSeq) || 0) + 1;
       u.depTries = 0;
       u.bannedUntil = 0;
       u.notes.unshift({ text: "Платёж пополнен: " + Number(p.amount).toFixed(2), type: "ok", at: Date.now() });
@@ -53,7 +54,8 @@ async function apply(payId, ok) {
     if (ok) {
       u.notes.unshift({ text: "Вывод подтверждён: " + Number(p.amount).toFixed(2), type: "ok", at: Date.now() });
     } else {
-      u.balance = Math.round((Number(u.balance || 0) + Number(p.amount)) * 100) / 100;
+      u.balance = Math.round((Number(u.balance || 0) + Number(p.amount)) * 100) / 100; u.balSeq = (Number(u.balSeq) || 0) + 1;
+      u.balSeq = (Number(u.balSeq) || 0) + 1;
       u.notes.unshift({ text: "Вывод отменён: " + Number(p.amount).toFixed(2), type: "no", at: Date.now() });
     }
   }

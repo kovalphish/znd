@@ -18,6 +18,7 @@ module.exports = async (req, res) => {
       name: u.name,
       email: u.email,
       balance: u.balance || 0,
+      balSeq: u.balSeq || 0,
       notes: u.notes || [],
       admin: Boolean(u.admin),
       bannedUntil: u.bannedUntil || 0

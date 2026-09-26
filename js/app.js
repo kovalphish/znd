@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-open]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = btn.dataset.open;
+      if (btn.dataset.case) window.ZND_CASE = btn.dataset.case;
       if (id !== "auth" && !currentUser()) {
         openScreen("auth");
         toast("Сначала войдите в аккаунт");
@@ -26,6 +27,14 @@ document.addEventListener("DOMContentLoaded", () => {
       if (id === "account") fillPayCard();
       if (id === "admin-desk") loadAdminDesk();
       openScreen(id);
+    });
+  });
+
+  document.querySelectorAll("[data-home]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-home]").forEach((b) => b.classList.toggle("on", b === btn));
+      document.getElementById("home-games")?.classList.toggle("on", btn.dataset.home === "games");
+      document.getElementById("home-cases")?.classList.toggle("on", btn.dataset.home === "cases");
     });
   });
 });

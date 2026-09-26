@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("save-admin")?.addEventListener("click", () => {
     const cfg = loadConfig();
-    ["coin", "plinko", "miner"].forEach((g) => {
+    ["coin", "plinko", "miner", "dice", "crash", "wheel", "limbo", "c50", "c150", "c250"].forEach((g) => {
       cfg.games[g].winChance = Number(document.getElementById("chance-" + g).value);
       cfg.games[g].enabled = document.getElementById("on-" + g).checked;
       document.getElementById("val-" + g).textContent = cfg.games[g].winChance + "%";
@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     login.hidden = true;
     panel.hidden = false;
     const cfg = loadConfig();
-    ["coin", "plinko", "miner"].forEach((g) => {
+    ["coin", "plinko", "miner", "dice", "crash", "wheel", "limbo", "c50", "c150", "c250"].forEach((g) => {
       const range = document.getElementById("chance-" + g);
       range.value = cfg.games[g].winChance;
       document.getElementById("val-" + g).textContent = cfg.games[g].winChance + "%";
