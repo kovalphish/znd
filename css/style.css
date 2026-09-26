@@ -214,6 +214,7 @@ input, select {
   stroke-linecap: round; stroke-linejoin: round;
 }
 .nav button.on { background: #222; color: var(--lime); }
+.nav button[hidden], #nav-admin[hidden] { display: none !important; }
 
 #toasts {
   position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%);

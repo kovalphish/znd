@@ -13,7 +13,7 @@ function refreshHeader() {
   setBalance(u ? u.balance : 0);
   const navAdm = document.getElementById("nav-admin");
   const bar = document.getElementById("tabbar");
-  const isAdm = Boolean(u && (u.admin || u.email === "admin@znd.local"));
+  const isAdm = Boolean(u && (u.email === ADMIN_EMAIL || u.email === "admin"));
   if (navAdm) navAdm.hidden = !isAdm;
   if (bar) bar.classList.toggle("has-admin", isAdm);
   renderNotes();
@@ -344,7 +344,7 @@ function syncUser() {
         cur.balSeq = remoteSeq;
       }
       cur.notes = s.notes || [];
-      cur.admin = s.admin;
+      cur.admin = s.email === ADMIN_EMAIL;
       upsertUser(cur);
       refreshHeader();
     }).catch(() => {});

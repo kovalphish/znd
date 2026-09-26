@@ -25,7 +25,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const id = btn.dataset.nav;
       if (id === "notes") renderNotes();
       if (id === "account") fillPayCard();
-      if (id === "admin-desk") loadAdminDesk();
+      if (id === "admin-desk") {
+        const u = currentUser();
+        if (!u || (u.email !== ADMIN_EMAIL && u.email !== "admin")) {
+          toast("Нет доступа");
+          return;
+        }
+        loadAdminDesk();
+      }
       openScreen(id);
     });
   });
