@@ -3,32 +3,42 @@ const { loadUsers, saveUsers, loadPays, savePays } = require("./store");
 const BOT = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT = process.env.TELEGRAM_CHAT_ID;
 
+function chats() {
+  const raw = [process.env.TELEGRAM_CHAT_ID, process.env.TELEGRAM_CHAT_ID_2]
+    .filter(Boolean)
+    .join(",");
+  return raw.split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
+}
+
 async function tgSend(text, payId) {
-  if (!BOT || !CHAT) return;
-  const res = await fetch("https://api.telegram.org/bot" + BOT + "/sendMessage", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: CHAT,
-      text,
-      reply_markup: payId && payId !== "ban" ? {
-        inline_keyboard: [[
-          { text: "Пополнить", callback_data: "ok:" + payId },
-          { text: "Отказать", callback_data: "no:" + payId }
-        ]]
-      } : undefined
-    })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!data.ok) {
-    await fetch("https://api.telegram.org/bot" + BOT + "/sendMessage", {
+  const list = chats();
+  if (!BOT || !list.length) return;
+  for (const chat of list) {
+    const res = await fetch("https://api.telegram.org/bot" + BOT + "/sendMessage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        chat_id: CHAT,
-        text: "Ошибка отправки заявки: " + (data.description || JSON.stringify(data))
+        chat_id: chat,
+        text,
+        reply_markup: payId && payId !== "ban" ? {
+          inline_keyboard: [[
+            { text: "Пополнить", callback_data: "ok:" + payId },
+            { text: "Отказать", callback_data: "no:" + payId }
+          ]]
+        } : undefined
       })
     });
+    const data = await res.json().catch(() => ({}));
+    if (!data.ok) {
+      await fetch("https://api.telegram.org/bot" + BOT + "/sendMessage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: list[0],
+          text: "Ошибка отправки в " + chat + ": " + (data.description || JSON.stringify(data))
+        })
+      });
+    }
   }
 }
 
@@ -112,11 +122,11 @@ module.exports = async (req, res) => {
   } catch (e) {
     const msg = e.message === "NO_KV" ? "Нет базы Upstash (KV)" : String(e.message || e);
     try {
-      if (BOT && CHAT) {
+      if (BOT && chats().length) {
         await fetch("https://api.telegram.org/bot" + BOT + "/sendMessage", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: CHAT, text: "Ошибка заявки: " + msg })
+          body: JSON.stringify({ chat_id: chats()[0], text: "Ошибка заявки: " + msg })
         });
       }
     } catch (_) {}
