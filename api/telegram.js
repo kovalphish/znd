@@ -14,10 +14,35 @@ async function tg(method, payload) {
   return data;
 }
 
-async function tell(text, chatId) {
-  const to = chatId || CHAT;
-  if (!to) return;
-  await tg("sendMessage", { chat_id: to, text: String(text).slice(0, 3500) });
+function chats() {
+  const raw = [process.env.TELEGRAM_CHAT_ID, process.env.TELEGRAM_CHAT_ID_2]
+    .filter(Boolean)
+    .join(",");
+  return raw.split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
+}
+
+async function handleStart(chatId) {
+  await tell("connecting", chatId);
+  const errors = [];
+  if (!BOT) errors.push("нет TELEGRAM_BOT_TOKEN в Vercel");
+  const list = chats();
+  if (!list.length) errors.push("нет TELEGRAM_CHAT_ID в Vercel");
+  const me = BOT ? await tg("getMe", {}) : { ok: false };
+  if (BOT && !me.ok) errors.push("токен бота не работает: " + (me.description || "getMe fail"));
+  try {
+    await loadUsers();
+    await loadPays();
+  } catch (e) {
+    errors.push("база: " + (e.message || e));
+  }
+  if (list.length && !list.includes(String(chatId))) {
+    errors.push("этот чат не в списке админов. id чата: " + chatId);
+  }
+  if (errors.length) {
+    await tell("not connect\n" + errors.join("\n"), chatId);
+    return;
+  }
+  await tell("connect\nchat " + chatId, chatId);
 }
 
 function parseBody(req) {
@@ -70,6 +95,12 @@ module.exports = async (req, res) => {
   }
   try {
     const body = parseBody(req);
+    const msg = body.message || body.edited_message;
+    if (msg && msg.chat && typeof msg.text === "string" && msg.text.trim().toLowerCase().startsWith("/start")) {
+      await handleStart(msg.chat.id);
+      res.status(200).json({ ok: true });
+      return;
+    }
     const cb = body.callback_query;
     if (!cb) {
       res.status(200).json({ ok: true });
